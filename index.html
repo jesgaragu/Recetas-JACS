@@ -3,79 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recetas JACS Online</title>
+    <title>Recetas JACS - V3.0 Online</title>
     <style>
         :root { --primary: #e67e22; --dark: #2c3e50; --light: #f4f7f6; --accent: #d35400; --success: #27ae60; }
-        body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; display: flex; color: #333; min-height: 100vh; }
-        .sidebar { width: 260px; background: var(--dark); color: white; padding: 20px; flex-shrink: 0; }
-        .main-content { flex-grow: 1; padding: 30px; }
-        .recipe-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
-        .btn-ver { background: var(--primary); color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; }
-        /* ... (resto de tus estilos originales) ... */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--light); margin: 0; display: flex; color: #333; min-height: 100vh; }
+        
+        /* Menú Lateral */
+        .sidebar { width: 260px; background: var(--dark); color: white; padding: 20px; box-shadow: 2px 0 10px rgba(0,0,0,0.1); flex-shrink: 0; }
+        .sidebar h2 { font-size: 1.2em; border-bottom: 1px solid #555; padding-bottom: 10px; color: var(--primary); }
+        .menu-carpetas { list-style: none; padding: 0; margin-top: 20px; }
+        .menu-item { padding: 12px 15px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; transition: 0.3s; display: flex; align-items: center; }
+        .menu-item:hover { background: rgba(255,255,255,0.1); }
+        .menu-item.active { background: var(--primary); color: white; font-weight: bold; }
+        .menu-item::before { content: "📁"; margin-right: 10px; font-size: 0.9em; }
+
+        /* Contenido Principal */
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; border-bottom: 3px solid var(--primary); padding-bottom: 10px; }
+        
+        /* Filtros y Controles */
+        .top-panel { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .search-row { display: flex; gap: 15px; align-items: center; margin-bottom: 15px; }
+        .search-box { flex-grow: 1; padding: 12px; border: 2px solid #eee; border-radius: 8px; font-size: 1em; outline: none; }
+        
+        .btn-view-toggle { background: var(--dark); color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .btn-view-toggle:hover { background: var(--primary); }
+
+        .filter-controls { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+        .tag-container { display: flex; flex-wrap: wrap; gap: 8px; flex-grow: 1; }
+        .tag-btn { background: #eee; border: none; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.85em; transition: 0.3s; }
+        .tag-btn.active { background: var(--accent); color: white; }
+        .status-select { padding: 8px 12px; border-radius: 20px; border: 1px solid var(--primary); background: #fdf2e9; color: var(--accent); font-weight: bold; cursor: pointer; }
+
+        /* Estilos de Vista (Lista y Cuadrícula) */
+        .list-view table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .list-view th { background: #f8f9fa; color: #666; padding: 15px; text-align: left; font-size: 0.85em; text-transform: uppercase; }
+        .list-view td { padding: 15px; border-top: 1px solid #eee; vertical-align: middle; }
+        .receta-img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid #ddd; transition: 0.3s; }
+        
+        .grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .recipe-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s; border: 1px solid #eee; position: relative; display: flex; flex-direction: column; }
+        .card-img-wrapper { position: relative; width: 100%; height: 180px; overflow: hidden; }
+        .card-img { width: 100%; height: 100%; object-fit: cover; }
+        .card-body { padding: 15px; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: var(--dark); }
+        .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f0f0f0; }
+
+        .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
+        .modal-content { max-width: 90%; max-height: 90%; border-radius: 12px; border: 4px solid white; }
+        .badge-realizada { color: var(--success); font-weight: bold; }
+        .puntuacion-star { color: #f1c40f; font-weight: bold; background: #fef9e7; padding: 4px 8px; border-radius: 5px; }
+        .btn-ver { background: var(--dark); color: white; text-decoration: none; padding: 8px 12px; border-radius: 6px; font-size: 0.75em; font-weight: 800; text-align: center; }
     </style>
 </head>
 <body>
-    <nav class="sidebar">
-        <h2>📁 CATEGORÍAS</h2>
-        <ul id="menuCarpetas" class="menu-carpetas"></ul>
-    </nav>
-    <main class="main-content">
-        <h1>👨‍🍳 Recetas JACS Online</h1>
-        <div id="viewContainer">Cargando recetas...</div>
-    </main>
+
+<div id="imageModal" class="modal" onclick="this.style.display='none'">
+    <img class="modal-content" id="imgFull">
+</div>
+
+<nav class="sidebar">
+    <h2>📂 CATEGORÍAS</h2>
+    <ul class="menu-carpetas" id="menuCarpetas">
+        <li class="menu-item active" onclick="seleccionarCarpeta('', this)">Todas las recetas</li>
+    </ul>
+</nav>
+
+<main class="main-content">
+    <div class="header">
+        <h1>👨‍🍳 Recetas JACS V3.0 Online</h1>
+    </div>
+
+    <div class="top-panel">
+        <div class="search-row">
+            <input type="text" id="busqueda" class="search-box" placeholder="🔍 Buscar por nombre..." onkeyup="filtrar()">
+            <button class="btn-view-toggle" onclick="toggleView()" id="btnView">
+                <span id="viewIcon">🔳</span> <span id="viewText">Vista Cuadrícula</span>
+            </button>
+        </div>
+        <div class="filter-controls">
+            <div class="tag-container" id="tagBox"></div>
+            <select id="selRealizada" class="status-select" onchange="filtrar()">
+                <option value="todas">Todos los estados</option>
+                <option value="si">Realizadas ✅</option>
+                <option value="no">Pendientes ⏳</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="viewContainer" class="list-view">Cargando recetas...</div>
+</main>
 
 <script>
-let recetas = [];
+    let recetas = [];
+    let etiquetaActiva = "";
+    let carpetaActiva = "";
+    let esVistaGrid = false;
 
-// CARGA AUTOMÁTICA AL ABRIR LA WEB 
-window.addEventListener('DOMContentLoaded', () => {
-    fetch('Recetas.csv')
-        .then(response => response.text())
-        .then(data => procesarCSV(data))
-        .catch(err => {
-            document.getElementById('viewContainer').innerHTML = "Error cargando Recetas.csv. Asegúrate de que el archivo esté en la misma carpeta.";
+    // CARGA AUTOMÁTICA DEL CSV ONLINE
+    window.addEventListener('DOMContentLoaded', () => {
+        fetch('Recetas.csv')
+            .then(response => response.text())
+            .then(data => procesarCSV(data))
+            .catch(err => {
+                document.getElementById('viewContainer').innerHTML = "Error cargando Recetas.csv. Asegúrate de subirlo a GitHub junto al HTML.";
+            });
+    });
+
+    function procesarCSV(texto) {
+        const lineas = texto.split(/\r?\n/);
+        recetas = [];
+        let etiquetasSet = new Set();
+        let carpetasSet = new Set();
+
+        for (let i = 1; i < lineas.length; i++) {
+            const linea = lineas[i].trim();
+            if (!linea) continue;
+            const col = linea.split(';');
+            if (col.length < 6) continue;
+
+            const tagsArray = col[2] ? col[2].split(',').map(t => t.trim()).filter(t => t !== "") : [];
+            const valRealizada = col[3].trim().toUpperCase();
+            
+            recetas.push({
+                nombre: col[0],
+                carpeta: col[1],
+                tags: tagsArray,
+                realizada: (valRealizada === "SI" || valRealizada === "TRUE" || valRealizada === "S"),
+                puntuacion: col[4],
+                url: col[5].trim() // Aquí guardamos el ID de Drive[cite: 1]
+            });
+            if(col[1]) carpetasSet.add(col[1]);
+            tagsArray.forEach(t => etiquetasSet.add(t));
+        }
+        renderizarMenu(carpetasSet);
+        renderizarTags(etiquetasSet);
+        filtrar();
+    }
+
+    // MODIFICADO: Convierte el ID de Drive en enlace[cite: 1]
+    function formatearRuta(idDrive) {
+        if (!idDrive) return "#";
+        if (idDrive.startsWith('http')) return idDrive;
+        return `https://drive.google.com/uc?export=view&id=${idDrive}`;
+    }
+
+    function toggleView() {
+        esVistaGrid = !esVistaGrid;
+        document.getElementById('viewText').innerText = esVistaGrid ? "Vista Lista" : "Vista Cuadrícula";
+        document.getElementById('viewIcon').innerText = esVistaGrid ? "≡" : "🔳";
+        filtrar();
+    }
+
+    function seleccionarCarpeta(cat, elemento) {
+        carpetaActiva = cat;
+        document.querySelectorAll('.menu-item').forEach(i => i.classList.remove('active'));
+        elemento.classList.add('active');
+        filtrar();
+    }
+
+    function filtrar() {
+        const texto = document.getElementById('busqueda').value.toLowerCase();
+        const estadoFiltro = document.getElementById('selRealizada').value;
+        const container = document.getElementById('viewContainer');
+        
+        const filtradas = recetas.filter(r => {
+            const cumpleCarpeta = carpetaActiva === "" || r.carpeta === carpetaActiva;
+            const cumpleTexto = r.nombre.toLowerCase().includes(texto);
+            const cumpleTag = etiquetaActiva === "" || r.tags.includes(etiquetaActiva);
+            let cumpleEstado = true;
+            if (estadoFiltro === "si") cumpleEstado = r.realizada;
+            else if (estadoFiltro === "no") cumpleEstado = !r.realizada;
+            return cumpleCarpeta && cumpleTexto && cumpleTag && cumpleEstado;
         });
-});
 
-function procesarCSV(texto) {
-    const lineas = texto.split(/\r?\n/);
-    recetas = [];
-    for (let i = 1; i < lineas.length; i++) {
-        const col = lineas[i].split(';');
-        if (col.length < 6) continue;
-        recetas.push({
-            nombre: col[0],
-            carpeta: col[1],
-            tags: col[2] ? col[2].split(',') : [],
-            realizada: col[3].trim().toUpperCase() === "SI",
-            puntuacion: col[4],
-            url: col[5].trim() // Aquí ahora va el ID de Drive 
+        if(esVistaGrid) renderGrid(filtradas, container);
+        else renderList(filtradas, container);
+    }
+
+    function renderList(datos, container) {
+        container.className = "list-view";
+        let html = `<table><thead><tr><th>Receta</th><th>Etiquetas</th><th>Estado</th><th>Nota</th><th>Documento</th></tr></thead><tbody>`;
+        datos.forEach(r => {
+            const finalPath = formatearRuta(r.url);
+            const imgSrc = `Imagenes/${r.nombre}.jpg`;
+            html += `<tr>
+                <td><b>${r.nombre}</b><br><small>${r.carpeta}</small></td>
+                <td>${r.tags.join(', ')}</td>
+                <td>${r.realizada ? '✅' : '⏳'}</td>
+                <td><span class="puntuacion-star">⭐ ${r.puntuacion || '0'}</span></td>
+                <td><a href="${finalPath}" class="btn-ver" target="_blank">VER</a></td>
+            </tr>`;
+        });
+        container.innerHTML = html + "</tbody></table>";
+    }
+
+    function renderGrid(datos, container) {
+        container.className = "grid-view";
+        let html = "";
+        datos.forEach(r => {
+            const finalPath = formatearRuta(r.url);
+            html += `
+            <div class="recipe-card">
+                <div class="card-body">
+                    <div class="card-title">${r.nombre}</div>
+                    <div class="card-footer">
+                        <span class="puntuacion-star">⭐ ${r.puntuacion || '0'}</span>
+                        <a href="${finalPath}" class="btn-ver" target="_blank">VER VIDEO/PDF</a>
+                    </div>
+                </div>
+            </div>`;
+        });
+        container.innerHTML = html;
+    }
+
+    function renderizarMenu(carpetas) {
+        const menu = document.getElementById('menuCarpetas');
+        menu.innerHTML = `<li class="menu-item active" onclick="seleccionarCarpeta('', this)">Todas las recetas</li>`;
+        Array.from(carpetas).sort().forEach(cat => {
+            const li = document.createElement('li'); li.className = 'menu-item'; li.innerText = cat;
+            li.onclick = () => seleccionarCarpeta(cat, li); menu.appendChild(li);
         });
     }
-    renderList(recetas);
-}
 
-// FUNCIÓN CLAVE: Convierte el ID en enlace directo
-function formatearRuta(idDrive) {
-    // Si ya es un enlace (empieza por http), lo dejamos. Si no, asumimos que es ID de Drive.
-    if (idDrive.startsWith('http')) return idDrive;
-    return `https://drive.google.com/uc?export=view&id=${idDrive}`;
-}
-
-function renderList(datos) {
-    const container = document.getElementById('viewContainer');
-    let html = '';
-    datos.forEach(r => {
-        const finalPath = formatearRuta(r.url);
-        html += `
-        <div class="recipe-card">
-            <h3>${r.nombre}</h3>
-            <p>Categoría: ${r.carpeta} | ⭐ ${r.puntuacion}</p>
-            <a href="${finalPath}" class="btn-ver" target="_blank">VER RECETA</a>
-        </div>`;
-    });
-    container.innerHTML = html;
-}
+    function renderizarTags(etiquetas) {
+        const box = document.getElementById('tagBox');
+        box.innerHTML = "";
+        Array.from(etiquetas).sort().forEach(tag => {
+            const btn = document.createElement('button');
+            btn.className = 'tag-btn'; btn.innerText = tag;
+            btn.onclick = () => {
+                if(etiquetaActiva === tag) { etiquetaActiva = ""; btn.classList.remove('active'); }
+                else { 
+                    document.querySelectorAll('.tag-btn').forEach(b => b.classList.remove('active'));
+                    etiquetaActiva = tag; btn.classList.add('active'); 
+                }
+                filtrar();
+            };
+            box.appendChild(btn);
+        });
+    }
 </script>
 </body>
 </html>
