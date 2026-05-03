@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recetas JACS Online</title>
+    <style>
+        :root { --primary: #e67e22; --dark: #2c3e50; --light: #f4f7f6; --accent: #d35400; --success: #27ae60; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--light); margin: 0; display: flex; color: #333; min-height: 100vh; }
+        .sidebar { width: 260px; background: var(--dark); color: white; padding: 20px; flex-shrink: 0; }
+        .main-content { flex-grow: 1; padding: 30px; }
+        .recipe-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .btn-ver { background: var(--primary); color: white; text-decoration: none; padding: 8px 15px; border-radius: 6px; font-weight: bold; }
+        /* ... (resto de tus estilos originales) ... */
+    </style>
+</head>
+<body>
+    <nav class="sidebar">
+        <h2>📁 CATEGORÍAS</h2>
+        <ul id="menuCarpetas" class="menu-carpetas"></ul>
+    </nav>
+    <main class="main-content">
+        <h1>👨‍🍳 Recetas JACS Online</h1>
+        <div id="viewContainer">Cargando recetas...</div>
+    </main>
+
+<script>
+let recetas = [];
+
+// CARGA AUTOMÁTICA AL ABRIR LA WEB 
+window.addEventListener('DOMContentLoaded', () => {
+    fetch('Recetas.csv')
+        .then(response => response.text())
+        .then(data => procesarCSV(data))
+        .catch(err => {
+            document.getElementById('viewContainer').innerHTML = "Error cargando Recetas.csv. Asegúrate de que el archivo esté en la misma carpeta.";
+        });
+});
+
+function procesarCSV(texto) {
+    const lineas = texto.split(/\r?\n/);
+    recetas = [];
+    for (let i = 1; i < lineas.length; i++) {
+        const col = lineas[i].split(';');
+        if (col.length < 6) continue;
+        recetas.push({
+            nombre: col[0],
+            carpeta: col[1],
+            tags: col[2] ? col[2].split(',') : [],
+            realizada: col[3].trim().toUpperCase() === "SI",
+            puntuacion: col[4],
+            url: col[5].trim() // Aquí ahora va el ID de Drive 
+        });
+    }
+    renderList(recetas);
+}
+
+// FUNCIÓN CLAVE: Convierte el ID en enlace directo
+function formatearRuta(idDrive) {
+    // Si ya es un enlace (empieza por http), lo dejamos. Si no, asumimos que es ID de Drive.
+    if (idDrive.startsWith('http')) return idDrive;
+    return `https://drive.google.com/uc?export=view&id=${idDrive}`;
+}
+
+function renderList(datos) {
+    const container = document.getElementById('viewContainer');
+    let html = '';
+    datos.forEach(r => {
+        const finalPath = formatearRuta(r.url);
+        html += `
+        <div class="recipe-card">
+            <h3>${r.nombre}</h3>
+            <p>Categoría: ${r.carpeta} | ⭐ ${r.puntuacion}</p>
+            <a href="${finalPath}" class="btn-ver" target="_blank">VER RECETA</a>
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+</script>
+</body>
+</html>
