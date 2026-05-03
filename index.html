@@ -35,19 +35,14 @@
         .tag-btn.active { background: var(--accent); color: white; }
         .status-select { padding: 8px 12px; border-radius: 20px; border: 1px solid var(--primary); background: #fdf2e9; color: var(--accent); font-weight: bold; cursor: pointer; }
 
-        /* ESTILO LISTA */
+        /* LISTA */
         .list-view table { width: 100%; border-collapse: collapse; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
         .list-view th { background: #f8f9fa; color: #666; padding: 15px; text-align: left; font-size: 0.85em; text-transform: uppercase; }
         .list-view td { padding: 15px; border-top: 1px solid #eee; vertical-align: middle; }
         .receta-info { display: flex; align-items: center; gap: 20px; }
-        
-        .receta-img { 
-            width: 80px; height: 80px; border-radius: 8px; 
-            object-fit: cover; cursor: pointer; border: 2px solid #ddd; 
-            transition: 0.3s; background: #f9f9f9;
-        }
+        .receta-img { width: 80px; height: 80px; border-radius: 8px; object-fit: cover; cursor: pointer; border: 2px solid #ddd; transition: 0.3s; background: #f9f9f9; }
 
-        /* ESTILO CUADRÍCULA */
+        /* CUADRÍCULA */
         .grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
         .recipe-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); transition: 0.3s; border: 1px solid #eee; position: relative; display: flex; flex-direction: column; }
         .card-img-wrapper { position: relative; width: 100%; height: 180px; overflow: hidden; }
@@ -59,7 +54,7 @@
         .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 5px; color: var(--dark); }
         .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f0f0f0; }
 
-        /* Comunes */
+        /* Modal e Indicadores */
         .modal { display: none; position: fixed; z-index: 1000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); align-items: center; justify-content: center; }
         .modal-content { max-width: 90%; max-height: 90%; border-radius: 12px; border: 4px solid white; }
         .badge-realizada { color: var(--success); font-weight: bold; }
@@ -112,6 +107,7 @@
     let esVistaGrid = false;
 
     // --- CONFIGURACIÓN GOOGLE SHEETS ---
+    // SUSTITUYE ESTO POR TU ENLACE DE "PUBLICAR EN LA WEB" (CSV)
     const urlGoogleSheet = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRePDWeXzcSIvnWRvO45TLGaGr1Osn4Lxr6padNawv-OvgjH4VkGV-3mUuxy1sHZeI96t3e3g_71laC/pub?output=csv"; 
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -119,12 +115,12 @@
             .then(response => response.text())
             .then(data => procesarCSV(data))
             .catch(err => {
-                document.getElementById('viewContainer').innerHTML = "Error al conectar con el CSV de Google Sheets. Revisa el enlace de 'Publicar en la web'.";
+                document.getElementById('viewContainer').innerHTML = "Error al conectar con Google Sheets.";
             });
     });
 
     function procesarCSV(texto) {
-        // Regex para separar por comas ignorando las que están entre comillas (etiquetas)[cite: 1]
+        // Regex para evitar problemas con comas en las etiquetas
         const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
         const lineas = texto.split(/\r?\n/);
         recetas = [];
@@ -135,9 +131,7 @@
             const linea = lineas[i].trim();
             if (!linea) continue;
             
-            // Limpiamos las comillas que Google Sheets añade automáticamente
             const col = linea.split(regex).map(c => c.replace(/^"|"$/g, '').trim());
-            
             if (col.length < 6) continue;
 
             const tagsArray = col[2] ? col[2].split(',').map(t => t.trim()).filter(t => t !== "") : [];
@@ -159,13 +153,13 @@
         filtrar();
     }
 
-    // Convierte el ID de Drive o ruta en enlace visualizable[cite: 1]
+    // MODIFICADO: Formato /preview para forzar visualización de PDF y Vídeo en PC
     function formatearRuta(dato) {
         if (!dato) return "#";
         if (dato.startsWith('http')) return dato;
-        // Si no tiene extensión ni barras, es un ID de Drive
+        // Si es un ID de Drive puro (sin puntos ni barras)
         if (!dato.includes('.') && !dato.includes('/')) {
-            return `https://drive.google.com/uc?export=view&id=${dato}`;
+            return `https://drive.google.com/file/d/${dato}/preview`;
         }
         return dato;
     }
@@ -205,7 +199,7 @@
 
     function renderList(datos, container) {
         container.className = "list-view";
-        let html = `<table><thead><tr><th style="width:35%">Receta</th><th>Etiquetas</th><th>Estado</th><th>Nota</th><th>Documento</th></tr></thead><tbody>`;
+        let html = `<table><thead><tr><th style="width:35%">Receta</th><th>Etiquetas</th><th>Estado</th><th>Nota</th><th>Ver</th></tr></thead><tbody>`;
         datos.forEach(r => {
             const finalPath = formatearRuta(r.url);
             const imgSrc = `Imagenes/${r.nombre}.jpg`;
@@ -217,9 +211,9 @@
                     </div>
                 </td>
                 <td>${r.tags.map(t => `<span style="font-size:0.75em; background:#f0f0f0; padding:3px 8px; border-radius:4px; margin-right:4px;">${t}</span>`).join('')}</td>
-                <td>${r.realizada ? '<span class="badge-realizada">✅ SI</span>' : '<span class="badge-pendiente">⏳ No</span>'}</td>
+                <td>${r.realizada ? '<span class="badge-realizada">✅ SI</span>' : '⏳ No'}</td>
                 <td><span class="puntuacion-star">⭐ ${r.puntuacion || '0'}</span></td>
-                <td><a href="${finalPath}" class="btn-ver" target="_blank">VER</a></td>
+                <td><a href="${finalPath}" class="btn-ver" target="_blank">ABRIR</a></td>
             </tr>`;
         });
         container.innerHTML = html + "</tbody></table>";
@@ -235,17 +229,14 @@
             html += `
             <div class="recipe-card">
                 <div class="card-img-wrapper">
-                    <span class="card-status-badge ${statusClass}">${r.realizada ? 'HECHA ✅' : 'PENDIENTE ⏳'}</span>
+                    <span class="card-status-badge ${statusClass}">${r.realizada ? 'HECHA' : 'PENDIENTE'}</span>
                     <img src="${imgSrc}" class="card-img" onerror="this.src='https://via.placeholder.com/300x180?text=Receta'" onclick="verImagen('${imgSrc}')">
                 </div>
                 <div class="card-body">
                     <div class="card-title">${r.nombre}</div>
-                    <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:10px;">
-                        ${r.tags.slice(0,3).map(t => `<span style="font-size:0.7em; background:#eee; padding:2px 6px; border-radius:4px;">${t}</span>`).join('')}
-                    </div>
                     <div class="card-footer">
                         <span class="puntuacion-star">⭐ ${r.puntuacion || '0'}</span>
-                        <a href="${finalPath}" class="btn-ver" target="_blank">VER</a>
+                        <a href="${finalPath}" class="btn-ver" target="_blank">ABRIR RECETA</a>
                     </div>
                 </div>
             </div>`;
@@ -286,6 +277,5 @@
         });
     }
 </script>
-
 </body>
 </html>
